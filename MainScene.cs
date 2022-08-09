@@ -22,7 +22,7 @@ public class MainScene : Node2D
     public override void _Input(InputEvent @event)
     {
         base._Input(@event);
-        
+
         if (@event is InputEventMouseMotion motionEvent)
         {
             if (motionEvent.ButtonMask == (int)ButtonList.Right)
@@ -31,21 +31,36 @@ public class MainScene : Node2D
                 {
                     _cameraPosition += _dragPrevPos.Value - motionEvent.Position;
                 }
-                
+
                 _dragPrevPos = motionEvent.Position;
                 Update();
             }
+            else
+            {
+                _dragPrevPos = null;
+            }
+
+            if (motionEvent.ButtonMask == (int)ButtonList.Left)
+            {
+                var pos = motionEvent.Position;
+                var x = (int)((pos.x + _cameraPosition.x) / _cellSize);
+                var y = (int)((pos.y + _cameraPosition.y) / _cellSize);
+
+                var newCell = new Vector2(x, y);
+                if (!_cells.Contains(newCell))
+                {
+                    _cells.Add(newCell);
+                    Update();
+                    _lastUpdate = -1;
+                }
+            }
         }
-        else
-        {
-            _dragPrevPos = null;    
-        }
-        
+
         if (@event is InputEventMouseButton mouseEvent && mouseEvent.Pressed)
         {
-            if (mouseEvent.ButtonIndex == (int)ButtonList.Left)
+            if (mouseEvent.ButtonMask == (int)ButtonList.Left)
             {
-                var pos = GetViewport().GetMousePosition();
+                var pos = mouseEvent.Position;
                 var x = (int)((pos.x + _cameraPosition.x) / _cellSize);
                 var y = (int)((pos.y + _cameraPosition.y) / _cellSize);
 
@@ -58,9 +73,9 @@ public class MainScene : Node2D
                 {
                     _cells.Add(newCell);
                 }
-
+                
                 Update();
-                _lastUpdate = -1;    
+                _lastUpdate = -1;
             }
             else if (mouseEvent.ButtonIndex == (int)ButtonList.WheelUp)
             {

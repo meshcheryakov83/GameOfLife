@@ -3,22 +3,6 @@ using Godot;
 
 public static class Colony
 {
-    private static int NearCount(IEnumerable<Vector2> cells, Vector2 cell)
-    {
-        var nearCount = 0;
-        foreach(var nearCell in cells)
-        {
-            var deltaX = nearCell.x - cell.x;
-            var deltaY = nearCell.y - cell.y;
-            if (deltaX >= -1 && deltaX <= 1 && deltaY >= -1 && deltaY <= 1)
-            {
-                nearCount++;
-            }
-        }
-
-        return nearCount;
-    }
-
     public static void Update(HashSet<Vector2> cells)
     {
         var cellsToDie = new HashSet<Vector2>();
@@ -47,13 +31,13 @@ public static class Colony
             }
         }
 
-        var toBorn = new HashSet<Vector2>();
+        var newCells = new HashSet<Vector2>();
         foreach (var possibleNewCell in possibleToBorn)
         {
             var nearCount = NearCount(cells, possibleNewCell);
             if (nearCount == 3)
             {
-                toBorn.Add(possibleNewCell);
+                newCells.Add(possibleNewCell);
             }
         }
 
@@ -62,9 +46,25 @@ public static class Colony
             cells.Remove(cellToDie);
         }
 
-        foreach (var cellToBorn in toBorn)
+        foreach (var cellToBorn in newCells)
         {
             cells.Add(cellToBorn);
         }
+    }
+    
+    private static int NearCount(IEnumerable<Vector2> cells, Vector2 cell)
+    {
+        var nearCount = 0;
+        foreach(var nearCell in cells)
+        {
+            var deltaX = nearCell.x - cell.x;
+            var deltaY = nearCell.y - cell.y;
+            if (deltaX >= -1 && deltaX <= 1 && deltaY >= -1 && deltaY <= 1)
+            {
+                nearCount++;
+            }
+        }
+
+        return nearCount;
     }
 }
