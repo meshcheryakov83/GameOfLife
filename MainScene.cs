@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class MainScene : Node2D
 {
-    private readonly Color BorderColor = new Color(00, 00, 00);
+    private readonly Color BorderColor = new Color(0, 0, 0);
     private readonly Color CellFillColor = new Color(0, 250, 0);
     
     private readonly HashSet<Vector2> _cells = new HashSet<Vector2>();
@@ -13,7 +13,7 @@ public class MainScene : Node2D
     private float _lastUpdate = 0;
 
     private Vector2 _cameraPosition = Vector2.Zero;
-    private Vector2? _dragPrevPos;
+    private Vector2? _dragMapPrevPos;
 
     public override void _Ready()
     {
@@ -27,17 +27,17 @@ public class MainScene : Node2D
         {
             if (motionEvent.ButtonMask == (int)ButtonList.Right)
             {
-                if (_dragPrevPos.HasValue)
+                if (_dragMapPrevPos.HasValue)
                 {
-                    _cameraPosition += _dragPrevPos.Value - motionEvent.Position;
+                    _cameraPosition += _dragMapPrevPos.Value - motionEvent.Position;
                 }
 
-                _dragPrevPos = motionEvent.Position;
+                _dragMapPrevPos = motionEvent.Position;
                 Update();
             }
             else
             {
-                _dragPrevPos = null;
+                _dragMapPrevPos = null;
             }
 
             if (motionEvent.ButtonMask == (int)ButtonList.Left)
@@ -111,12 +111,12 @@ public class MainScene : Node2D
     {
         var viewPortSize = GetViewport().Size;
         
-        for (float x = -1 * (_cameraPosition.x % _cellSize); x < viewPortSize.x; x += _cellSize)
+        for (float x = -_cameraPosition.x % _cellSize; x < viewPortSize.x; x += _cellSize)
         {
             DrawLine(new Vector2(x, 0), new Vector2(x, viewPortSize.y), BorderColor, 1);
         }
 
-        for (float y = -1 * (_cameraPosition.y % _cellSize); y < viewPortSize.y; y += _cellSize)
+        for (float y = -_cameraPosition.y % _cellSize; y < viewPortSize.y; y += _cellSize)
         {
             DrawLine(new Vector2(0, y), new Vector2(viewPortSize.x, y), BorderColor, 1);
         }
