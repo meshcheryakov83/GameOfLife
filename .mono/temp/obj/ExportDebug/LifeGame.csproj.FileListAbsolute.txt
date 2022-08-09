@@ -1,0 +1,9 @@
+C:\dev\gamedev\TheLifeGame\.mono\temp\bin\ExportDebug\LifeGame.dll
+C:\dev\gamedev\TheLifeGame\.mono\temp\bin\ExportDebug\LifeGame.pdb
+C:\dev\gamedev\TheLifeGame\.mono\temp\obj\ExportDebug\LifeGame.csproj.AssemblyReference.cache
+C:\dev\gamedev\TheLifeGame\.mono\temp\obj\ExportDebug\LifeGame.GeneratedMSBuildEditorConfig.editorconfig
+C:\dev\gamedev\TheLifeGame\.mono\temp\obj\ExportDebug\LifeGame.AssemblyInfoInputs.cache
+C:\dev\gamedev\TheLifeGame\.mono\temp\obj\ExportDebug\LifeGame.AssemblyInfo.cs
+C:\dev\gamedev\TheLifeGame\.mono\temp\obj\ExportDebug\LifeGame.csproj.CoreCompileInputs.cache
+C:\dev\gamedev\TheLifeGame\.mono\temp\obj\ExportDebug\LifeGame.dll
+C:\dev\gamedev\TheLifeGame\.mono\temp\obj\ExportDebug\LifeGame.pdb

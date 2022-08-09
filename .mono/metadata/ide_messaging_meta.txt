@@ -1,0 +1,2 @@
+﻿52676
+C:/Users/alman/scoop/apps/godot-mono/3.5/godot-mono.exe
