@@ -10,18 +10,13 @@ config_version=4
 
 [application]
 
-config/name="LifeGame"
-run/main_scene="res://Main.tscn"
+config/name="GameOfLife"
+run/main_scene="res://MainScene.tscn"
 config/icon="res://icon.png"
 
 [gui]
 
 common/drop_mouse_on_gui_input_disabled=true
-
-[mono]
-
-debugger_agent/wait_for_debugger=true
-debugger_agent/wait_timeout=15000
 
 [physics]
 
