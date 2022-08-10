@@ -6,17 +6,34 @@ public class MainScene : Node2D
 {
     private readonly Color BorderColor = new Color(0, 0, 0);
     private readonly Color CellFillColor = new Color(0, 250, 0);
+    private const int MinCellSize = 1;
     
     private readonly HashSet<Vector2> _cells = new HashSet<Vector2>();
+
+    private bool _started = false;
+    private int _cellSize = 3;
     
-    private int _cellSize = 20;
     private float _lastUpdate = 0;
+    private float _stepTime = 0.2f;
 
     private Vector2 _cameraPosition = Vector2.Zero;
     private Vector2? _dragMapPrevPos;
-
+    
+    private Button _startButton;
+    
     public override void _Ready()
     {
+        _startButton = GetNode<Button>("StartButton");
+        _startButton.Connect("pressed", this, nameof(StartButtonClick));
+    }
+
+    void StartButtonClick()
+    {
+        _started = !_started;
+
+        _startButton.Text = _started ? "Stop" : "Start";
+
+        _lastUpdate = _stepTime;
     }
 
     public override void _Input(InputEvent @event)
@@ -84,7 +101,7 @@ public class MainScene : Node2D
             }
             else if (mouseEvent.ButtonIndex == (int)ButtonList.WheelDown)
             {
-                if (_cellSize > 3)
+                if (_cellSize > MinCellSize)
                 {
                     _cellSize -= 1;
                     Update();
@@ -95,15 +112,18 @@ public class MainScene : Node2D
 
     public override void _Process(float delta)
     {
-        _lastUpdate += delta;
-        
-        if (_lastUpdate > 1)
+        if (_started)
         {
-            Colony.Update(_cells);
+            _lastUpdate += delta;
+        
+            if (_lastUpdate > _stepTime)
+            {
+                Colony.Update(_cells);
 
-            _lastUpdate = 0;
+                _lastUpdate = 0;
             
-            Update();
+                Update();
+            }
         }
     }
 
@@ -111,15 +131,15 @@ public class MainScene : Node2D
     {
         var viewPortSize = GetViewport().Size;
         
-        for (float x = -_cameraPosition.x % _cellSize; x < viewPortSize.x; x += _cellSize)
-        {
-            DrawLine(new Vector2(x, 0), new Vector2(x, viewPortSize.y), BorderColor, 1);
-        }
-
-        for (float y = -_cameraPosition.y % _cellSize; y < viewPortSize.y; y += _cellSize)
-        {
-            DrawLine(new Vector2(0, y), new Vector2(viewPortSize.x, y), BorderColor, 1);
-        }
+//        for (float x = -_cameraPosition.x % _cellSize; x < viewPortSize.x; x += _cellSize)
+//        {
+//            DrawLine(new Vector2(x, 0), new Vector2(x, viewPortSize.y), BorderColor, 1);
+//        }
+//
+//        for (float y = -_cameraPosition.y % _cellSize; y < viewPortSize.y; y += _cellSize)
+//        {
+//            DrawLine(new Vector2(0, y), new Vector2(viewPortSize.x, y), BorderColor, 1);
+//        }
 
         foreach (var cell in _cells)
         {
