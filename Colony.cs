@@ -1,14 +1,40 @@
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using Godot;
 
-public static class Colony
+public class Colony : IEnumerable<Vector2>
 {
-    public static void Update(HashSet<Vector2> cells)
+    public int GenerationsCounter { get; private set; }
+
+    private readonly HashSet<Vector2> _cells = new HashSet<Vector2>();
+
+    public void Add(Vector2 cell)
     {
+        _cells.Add(cell);
+        GenerationsCounter = 0;
+    }
+
+    public void Remove(Vector2 cell)
+    {
+        _cells.Remove(cell);
+        GenerationsCounter = 0;
+    }
+
+    public bool Contains(Vector2 cell)
+    {
+        return _cells.Contains(cell);
+    }
+
+    public void Update()
+    {
+        GenerationsCounter++;
+
         var cellsToDie = new HashSet<Vector2>();
-        foreach (var cell in cells)
+        foreach (var cell in _cells)
         {
-            var nearCount = NearCount(cells, cell) - 1;
+            var nearCount = NearCount(_cells, cell) - 1;
             if (nearCount < 2 || nearCount > 3)
             {
                 cellsToDie.Add(cell);
@@ -16,14 +42,14 @@ public static class Colony
         }
 
         var possibleToBorn = new HashSet<Vector2>();
-        foreach(var cell in cells)
+        foreach(var cell in _cells)
         {
             for(float x = cell.x - 1; x <= cell.x + 1; x++)
             {
                 for(float y = cell.y - 1; y <= cell.y + 1; y++)
                 {
                     var positionToCheck = new Vector2(x, y);
-                    if (!cells.Contains(positionToCheck))
+                    if (!_cells.Contains(positionToCheck))
                     {
                         possibleToBorn.Add(positionToCheck);
                     }
@@ -34,7 +60,7 @@ public static class Colony
         var newCells = new HashSet<Vector2>();
         foreach (var possibleNewCell in possibleToBorn)
         {
-            var nearCount = NearCount(cells, possibleNewCell);
+            var nearCount = NearCount(_cells, possibleNewCell);
             if (nearCount == 3)
             {
                 newCells.Add(possibleNewCell);
@@ -43,15 +69,15 @@ public static class Colony
 
         foreach (var cellToDie in cellsToDie)
         {
-            cells.Remove(cellToDie);
+            _cells.Remove(cellToDie);
         }
 
         foreach (var cellToBorn in newCells)
         {
-            cells.Add(cellToBorn);
+            _cells.Add(cellToBorn);
         }
     }
-    
+
     private static int NearCount(IEnumerable<Vector2> cells, Vector2 cell)
     {
         var nearCount = 0;
@@ -66,5 +92,21 @@ public static class Colony
         }
 
         return nearCount;
+    }
+
+    public IEnumerator<Vector2> GetEnumerator()
+    {
+        return _cells.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public void Clear()
+    {
+        _cells.Clear();
+        GenerationsCounter = 0;
     }
 }

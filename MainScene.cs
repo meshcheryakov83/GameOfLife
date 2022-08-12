@@ -1,164 +1,240 @@
+using System.Linq;
 using Godot;
-using System;
-using System.Collections.Generic;
 
-public class MainScene : Node2D
+namespace GameOfLife
 {
-    private readonly Color BorderColor = new Color(0, 0, 0);
-    private readonly Color CellFillColor = new Color(0, 250, 0);
-    private const int MinCellSize = 1;
-    
-    private readonly HashSet<Vector2> _cells = new HashSet<Vector2>();
-
-    private bool _started = false;
-    private int _cellSize = 3;
-    
-    private float _lastUpdate = 0;
-    private float _stepTime = 0.2f;
-
-    private Vector2 _cameraPosition = Vector2.Zero;
-    private Vector2? _dragMapPrevPos;
-    
-    private Button _startButton;
-    
-    public override void _Ready()
+    public class MainScene : Node2D
     {
-        _startButton = GetNode<Button>("StartButton");
-        _startButton.Connect("pressed", this, nameof(StartButtonClick));
-    }
+        private const int MinCellSize = 1;
 
-    void StartButtonClick()
-    {
-        _started = !_started;
+        private readonly Color CellColor = new Color(0, 250, 0);
+        private readonly Vector2 MousePositionOffset = new Vector2(-15, 0);
 
-        _startButton.Text = _started ? "Stop" : "Start";
+        private readonly Colony _colony = new Colony();
+        private readonly float _stepTimeSec = 0.1f;
 
-        _lastUpdate = _stepTime;
-    }
+        private GameStates _gameState;
+        private float _cellSize = 3;
 
-    public override void _Input(InputEvent @event)
-    {
-        base._Input(@event);
+        private float _timeFromLastUpdateSec = 0;
 
-        if (@event is InputEventMouseMotion motionEvent)
+        private Vector2 _cameraPosition = Vector2.Zero;
+        private Vector2? _dragMapPrevPos;
+
+        private Vector2? _lastAddedCellWhileMouseMove;
+
+        private Button _startButton;
+        private Button _stepButton;
+        private Button _clearButton;
+        private Label _generationsLabel;
+
+        public override void _Ready()
         {
-            if (motionEvent.ButtonMask == (int)ButtonList.Right)
+            _startButton = GetNode<Button>("StartButton");
+            _startButton.Connect("pressed", this, nameof(OnStartButtonClick));
+
+            _stepButton = GetNode<Button>("StepButton");
+            _stepButton.Connect("pressed", this, nameof(OnStepButtonClick));
+
+            _clearButton = GetNode<Button>("ClearButton");
+            _clearButton.Connect("pressed", this, nameof(OnClearButtonClick));
+
+            _generationsLabel = GetNode<Label>("GenerationsLabel");
+
+            Reset();
+        }
+
+        private void OnClearButtonClick()
+        {
+            Reset();
+            Update();
+        }
+
+        private void OnStepButtonClick()
+        {
+            _colony.Update();
+            Update();
+        }
+
+        private void OnStartButtonClick()
+        {
+            switch (_gameState)
             {
-                if (_dragMapPrevPos.HasValue)
+                case GameStates.Initial:
+                    _gameState = GameStates.Started;
+                    break;
+                case GameStates.Started:
+                    _gameState = GameStates.Paused;
+                    break;
+                case GameStates.Paused:
+                    _gameState = GameStates.Started;
+                    break;
+            }
+
+            _timeFromLastUpdateSec = _stepTimeSec;
+
+            UpdateButtonStates();
+        }
+
+        private void Reset()
+        {
+            _gameState = GameStates.Initial;
+            _colony.Clear();
+
+            UpdateButtonStates();
+        }
+
+        private void UpdateButtonStates()
+        {
+            switch (_gameState)
+            {
+                case GameStates.Initial:
+                    _startButton.Text = "Start";
+                    _stepButton.Disabled = false;
+                    break;
+                case GameStates.Started:
+                    _startButton.Text = "Pause";
+                    _stepButton.Disabled = true;
+                    break;
+                case GameStates.Paused:
+                    _startButton.Text = "Resume";
+                    _stepButton.Disabled = false;
+                    break;
+            }
+        }
+
+        public override void _UnhandledInput(InputEvent @event)
+        {
+            base._UnhandledInput(@event);
+
+            if (@event is InputEventMouseMotion motionEvent)
+            {
+                var mousePosition = motionEvent.Position + MousePositionOffset;
+
+                // Move map with right mouse button
+                if (motionEvent.ButtonMask == (int)ButtonList.Right)
                 {
-                    _cameraPosition += _dragMapPrevPos.Value - motionEvent.Position;
+                    if (_dragMapPrevPos.HasValue)
+                    {
+                        _cameraPosition += _dragMapPrevPos.Value - mousePosition;
+                    }
+
+                    _dragMapPrevPos = mousePosition;
+                    Update();
                 }
 
-                _dragMapPrevPos = motionEvent.Position;
-                Update();
+                // "Draw" cells with left mouse button
+                if (motionEvent.ButtonMask == (int)ButtonList.Left)
+                {
+                    var newCell = ((mousePosition + _cameraPosition) / _cellSize).Floor();
+
+                    // to provide "smooth drawing"
+                    if (_lastAddedCellWhileMouseMove.HasValue)
+                    {
+                        var curCell = _lastAddedCellWhileMouseMove.Value;
+                        while (curCell != newCell)
+                        {
+                            curCell = curCell.MoveToward(newCell, 1);
+                            _colony.Add(curCell.Round());
+                        }
+                    }
+
+                    _lastAddedCellWhileMouseMove = newCell;
+
+                    _gameState = GameStates.Initial;
+                    UpdateButtonStates();
+
+                    Update();
+                }
             }
             else
             {
+                _lastAddedCellWhileMouseMove = null;
                 _dragMapPrevPos = null;
             }
 
-            if (motionEvent.ButtonMask == (int)ButtonList.Left)
+            if (@event is InputEventMouseButton mouseEvent && mouseEvent.Pressed)
             {
-                var pos = motionEvent.Position;
-                var x = (int)((pos.x + _cameraPosition.x) / _cellSize);
-                var y = (int)((pos.y + _cameraPosition.y) / _cellSize);
+                var mousePosition = mouseEvent.Position + MousePositionOffset;
 
-                var newCell = new Vector2(x, y);
-                if (!_cells.Contains(newCell))
+                // add/remove one cell with single click
+                if (mouseEvent.ButtonMask == (int)ButtonList.Left)
                 {
-                    _cells.Add(newCell);
+                    var newCell = ((mousePosition + _cameraPosition) / _cellSize).Floor();
+
+                    if (_colony.Contains(newCell))
+                    {
+                        _colony.Remove(newCell);
+                    }
+                    else
+                    {
+                        _colony.Add(newCell);
+                    }
+
                     Update();
-                    _lastUpdate = -1;
+                    _gameState = GameStates.Initial;
+                    UpdateButtonStates();
+                }
+                // Zoom In/Out
+                else if (mouseEvent.ButtonIndex == (int)ButtonList.WheelUp
+                         || mouseEvent.ButtonIndex == (int)ButtonList.WheelDown)
+                {
+                    var newCellSize = _cellSize + (mouseEvent.ButtonIndex == (int)ButtonList.WheelUp ? 1 : -1);
+
+                    if (newCellSize > MinCellSize)
+                    {
+                        // to keep the mouse on the same position during scale
+                        _cameraPosition += (mousePosition + _cameraPosition) * (newCellSize / _cellSize - 1);
+
+                        _cellSize = newCellSize;
+                        Update();
+                    }
                 }
             }
         }
 
-        if (@event is InputEventMouseButton mouseEvent && mouseEvent.Pressed)
+        public override void _Process(float deltaSec)
         {
-            if (mouseEvent.ButtonMask == (int)ButtonList.Left)
+            if (_gameState == GameStates.Started)
             {
-                var pos = mouseEvent.Position;
-                var x = (int)((pos.x + _cameraPosition.x) / _cellSize);
-                var y = (int)((pos.y + _cameraPosition.y) / _cellSize);
+                _timeFromLastUpdateSec += deltaSec;
 
-                var newCell = new Vector2(x, y);
-                if (_cells.Contains(newCell))
+                if (_timeFromLastUpdateSec > _stepTimeSec)
                 {
-                    _cells.Remove(newCell);
-                }
-                else
-                {
-                    _cells.Add(newCell);
-                }
-                
-                Update();
-                _lastUpdate = -1;
-            }
-            else if (mouseEvent.ButtonIndex == (int)ButtonList.WheelUp)
-            {
-                _cellSize += 1;
-                Update();
-            }
-            else if (mouseEvent.ButtonIndex == (int)ButtonList.WheelDown)
-            {
-                if (_cellSize > MinCellSize)
-                {
-                    _cellSize -= 1;
+                    _colony.Update();
+
+                    _timeFromLastUpdateSec = 0;
+
                     Update();
                 }
             }
+
+            _generationsLabel.Text = $"Generation: #{_colony.GenerationsCounter}      Colony size: {_colony.Count()}";
         }
-    }
 
-    public override void _Process(float delta)
-    {
-        if (_started)
+        public override void _Draw()
         {
-            _lastUpdate += delta;
-        
-            if (_lastUpdate > _stepTime)
+            var viewPortSize = GetViewport().Size;
+
+            foreach (var cell in _colony)
             {
-                Colony.Update(_cells);
+                var cameraRect = new Rect2(
+                    x: _cameraPosition.x / _cellSize - 1,
+                    y: _cameraPosition.y / _cellSize - 1,
+                    width: viewPortSize.x / _cellSize + 1,
+                    height: viewPortSize.y / _cellSize + 1);
 
-                _lastUpdate = 0;
-            
-                Update();
-            }
-        }
-    }
-
-    public override void _Draw()
-    {
-        var viewPortSize = GetViewport().Size;
-        
-//        for (float x = -_cameraPosition.x % _cellSize; x < viewPortSize.x; x += _cellSize)
-//        {
-//            DrawLine(new Vector2(x, 0), new Vector2(x, viewPortSize.y), BorderColor, 1);
-//        }
-//
-//        for (float y = -_cameraPosition.y % _cellSize; y < viewPortSize.y; y += _cellSize)
-//        {
-//            DrawLine(new Vector2(0, y), new Vector2(viewPortSize.x, y), BorderColor, 1);
-//        }
-
-        foreach (var cell in _cells)
-        {
-            var cameraRect = new Rect2(
-                x: _cameraPosition.x / _cellSize - 1,
-                y: _cameraPosition.y / _cellSize - 1,
-                width: viewPortSize.x / _cellSize + 1,
-                height: viewPortSize.y / _cellSize + 1);
-
-            if (cameraRect.HasPoint(cell))
-            {
-                DrawRect(
-                    new Rect2(
-                        x: cell.x * _cellSize - _cameraPosition.x,
-                        y: cell.y * _cellSize - _cameraPosition.y,
-                        width: _cellSize,
-                        height: _cellSize),
-                    CellFillColor,
-                    filled: true);    
+                if (cameraRect.HasPoint(cell))
+                {
+                    DrawRect(
+                        new Rect2(
+                            x: cell.x * _cellSize - _cameraPosition.x,
+                            y: cell.y * _cellSize - _cameraPosition.y,
+                            width: _cellSize,
+                            height: _cellSize),
+                        CellColor,
+                        filled: true);
+                }
             }
         }
     }
