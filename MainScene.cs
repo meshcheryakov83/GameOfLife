@@ -16,7 +16,7 @@ namespace GameOfLife
         private GameStates _gameState;
         private float _cellSize = 3;
 
-        private float _timeFromLastUpdateSec = 0;
+        private float _timeFromLastUpdateSec;
 
         private Vector2 _cameraPosition = Vector2.Zero;
         private Vector2? _dragMapPrevPos;
@@ -209,7 +209,7 @@ namespace GameOfLife
                 }
             }
 
-            _generationsLabel.Text = $"Generation: #{_colony.GenerationsCounter}      Colony size: {_colony.Count()}";
+            _generationsLabel.Text = $"Generation: #{_colony.GenerationsCounter}      Colony size: {_colony.Count()}          Update Duration: {_colony.LastUpdateDurationMs}ms";
         }
 
         public override void _Draw()
