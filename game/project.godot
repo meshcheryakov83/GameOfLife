@@ -12,6 +12,8 @@ config_version=4
 
 config/name="GameOfLife"
 run/main_scene="res://MainScene.tscn"
+boot_splash/show_image=false
+boot_splash/image="res://icon.png"
 config/icon="res://icon.png"
 
 [gui]
