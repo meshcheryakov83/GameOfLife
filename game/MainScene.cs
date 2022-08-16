@@ -181,7 +181,7 @@ namespace GameOfLife
                 {
                     var newCellSize = _cellSize + (mouseEvent.ButtonIndex == (int)ButtonList.WheelUp ? 1 : -1);
 
-                    if (newCellSize > MinCellSize)
+                    if (newCellSize >= MinCellSize)
                     {
                         // to keep the mouse on the same position during scale
                         _cameraPosition += (mousePosition + _cameraPosition) * (newCellSize / _cellSize - 1);
