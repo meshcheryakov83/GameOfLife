@@ -5,7 +5,7 @@ namespace GameOfLife
 {
     public class MainScene : Node2D
     {
-        private const int MinCellSize = 3;
+        private const int MinCellSize = 1;
 
         private readonly Color CellColor = new Color(0, 1f, 0);
         private readonly Vector2 MousePositionOffset = new Vector2(-15, 0);
@@ -14,7 +14,7 @@ namespace GameOfLife
         private readonly float _stepTimeSec = 0.1f;
 
         private GameStates _gameState;
-        private float _cellSize = 3;
+        private float _cellSize = 1;
 
         private float _timeFromLastUpdateSec;
 
@@ -230,18 +230,18 @@ namespace GameOfLife
 
                 if (cameraRect.HasPoint(cell))
                 {
-                    // if (_cellSize <= 5)
-                    // {
-                    //     var cellPos = cell * _cellSize - _cameraPosition;
-                    //     DrawRect(
-                    //         new Rect2(
-                    //             cellPos,
-                    //             width: _cellSize,
-                    //             height: _cellSize),
-                    //         CellColor,
-                    //         filled: true);
-                    // }
-                    // else
+                    if (_cellSize < MinCellSize + 4)
+                    {
+                        var cellPos = cell * _cellSize - _cameraPosition;
+                        DrawRect(
+                            new Rect2(
+                                cellPos,
+                                width: _cellSize,
+                                height: _cellSize),
+                            CellColor,
+                            filled: true);
+                    }
+                    else
                     {
                         var cellPos = cell * _cellSize - _cameraPosition + Vector2.One;
                         DrawRect(
