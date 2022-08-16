@@ -230,28 +230,15 @@ namespace GameOfLife
 
                 if (cameraRect.HasPoint(cell))
                 {
-                    if (_cellSize < MinCellSize + 4)
-                    {
-                        var cellPos = cell * _cellSize - _cameraPosition;
-                        DrawRect(
-                            new Rect2(
-                                cellPos,
-                                width: _cellSize,
-                                height: _cellSize),
-                            CellColor,
-                            filled: true);
-                    }
-                    else
-                    {
-                        var cellPos = cell * _cellSize - _cameraPosition + Vector2.One;
-                        DrawRect(
-                            new Rect2(
-                                cellPos,
-                                width: _cellSize - 2,
-                                height: _cellSize - 2),
-                            CellColor,
-                            filled: true);
-                    }
+                    var borderCoeff = _cellSize < MinCellSize + 4 ? 0 : 1;
+                    var cellPos = cell * _cellSize - _cameraPosition + Vector2.One * borderCoeff;
+                    DrawRect(
+                        new Rect2(
+                            cellPos,
+                            width: _cellSize - 2 * borderCoeff,
+                            height: _cellSize - 2 * borderCoeff),
+                        CellColor,
+                        filled: true);
                 }
             }
         }
