@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Godot;
 
 public class Colony : IEnumerable<Vector2>
@@ -9,7 +10,9 @@ public class Colony : IEnumerable<Vector2>
 
     private readonly Dictionary<Vector2, int> _aliveCells = new Dictionary<Vector2, int>();
     private readonly Dictionary<Vector2, int> _emptyCells = new Dictionary<Vector2, int>();
-    public long LastUpdateDurationMs { get; private set; }
+
+    private readonly HashSet<Vector2> _aliveCellsToDie = new HashSet<Vector2>();
+    private readonly HashSet<Vector2> _emptyCellsToBorn = new HashSet<Vector2>();
 
     public void Add(Vector2 cell)
     {
@@ -25,17 +28,34 @@ public class Colony : IEnumerable<Vector2>
         }
 
         _aliveCells.Add(cell, 0);
-        if (_emptyCells.ContainsKey(cell))
-        {
-            _emptyCells.Remove(cell);
-        }
+        _emptyCells.Remove(cell);
+        _emptyCellsToBorn.Remove(cell);
 
         foreach (var nearestCell in cell.GetNearest())
         {
+            var tmp = 0;
             if (_aliveCells.ContainsKey(nearestCell))
             {
-                _aliveCells[cell]++;
-                _aliveCells[nearestCell]++;
+                tmp = ++_aliveCells[cell];
+                if (tmp == 3 || tmp == 2)
+                {
+                    _aliveCellsToDie.Remove(cell);
+                }
+                else
+                {
+                    _aliveCellsToDie.Add(cell);
+                }
+
+                tmp = ++_aliveCells[nearestCell];
+                if (tmp == 3 || tmp == 2)
+                {
+                    _aliveCellsToDie.Remove(nearestCell);
+                }
+                else
+                {
+                    _aliveCellsToDie.Add(nearestCell);
+                }
+
                 continue;
             }
 
@@ -44,7 +64,15 @@ public class Colony : IEnumerable<Vector2>
                 _emptyCells[nearestCell] = 0;
             }
 
-            _emptyCells[nearestCell]++;
+            tmp = ++_emptyCells[nearestCell];
+            if (tmp == 3)
+            {
+                _emptyCellsToBorn.Add(nearestCell);
+            }
+            else
+            {
+                _emptyCellsToBorn.Remove(nearestCell);
+            }
         }
     }
 
@@ -62,18 +90,48 @@ public class Colony : IEnumerable<Vector2>
         }
 
         _aliveCells.Remove(cell);
+        _aliveCellsToDie.Remove(cell);
+
         _emptyCells[cell] = 0;
         foreach (var nearestCell in cell.GetNearest())
         {
+            var tmp = 0;
             if (_aliveCells.ContainsKey(nearestCell))
             {
-                _emptyCells[cell]++;
-                _aliveCells[nearestCell]--;
+                tmp = ++_emptyCells[cell];
+                if (tmp == 3)
+                {
+                    _emptyCellsToBorn.Add(cell);
+                }
+                else
+                {
+                    _emptyCellsToBorn.Remove(cell);
+                }
+
+                tmp = --_aliveCells[nearestCell];
+                if (tmp == 3 || tmp == 2)
+                {
+                    _aliveCellsToDie.Remove(nearestCell);
+                }
+                else
+                {
+                    _aliveCellsToDie.Add(nearestCell);
+                }
+
                 continue;
             }
 
-            _emptyCells[nearestCell]--;
-            if (_emptyCells[nearestCell] == 0)
+            tmp = --_emptyCells[nearestCell];
+            if (tmp == 3)
+            {
+                _emptyCellsToBorn.Add(cell);
+            }
+            else
+            {
+                _emptyCellsToBorn.Remove(cell);
+            }
+
+            if (tmp == 0)
             {
                 _emptyCells.Remove(nearestCell);
             }
@@ -84,6 +142,8 @@ public class Colony : IEnumerable<Vector2>
     {
         _aliveCells.Clear();
         _emptyCells.Clear();
+        _aliveCellsToDie.Clear();
+        _emptyCellsToBorn.Clear();
         GenerationsCounter = 0;
     }
 
@@ -94,38 +154,20 @@ public class Colony : IEnumerable<Vector2>
 
     public void Update()
     {
-        var sw = Stopwatch.StartNew();
         GenerationsCounter++;
 
-        var cellsToDie = new HashSet<Vector2>();
-        foreach (var cell in _aliveCells)
-        {
-            if (cell.Value < 2 || cell.Value > 3)
-            {
-                cellsToDie.Add(cell.Key);
-            }
-        }
+        var toDie = _aliveCellsToDie.ToArray();
+        var toBorn = _emptyCellsToBorn.ToArray();
 
-        var newCells = new HashSet<Vector2>();
-        foreach (var emptyCell in _emptyCells)
-        {
-            if (emptyCell.Value == 3)
-            {
-                newCells.Add(emptyCell.Key);
-            }
-        }
-
-        foreach (var cellToDie in cellsToDie)
+        foreach (var cellToDie in toDie)
         {
             remove(cellToDie);
         }
 
-        foreach (var cellToBorn in newCells)
+        foreach (var cellToBorn in toBorn)
         {
             add(cellToBorn);
         }
-
-        LastUpdateDurationMs = sw.ElapsedMilliseconds;
     }
 
     public IEnumerator<Vector2> GetEnumerator()
@@ -141,18 +183,20 @@ public class Colony : IEnumerable<Vector2>
 
 public static class Vector2Extension
 {
-    public static IEnumerable<Vector2> GetNearest(this Vector2 cell)
+    public static Vector2[] GetNearest(this Vector2 cell)
     {
-        yield return new Vector2(cell.x - 1, cell.y - 1);
-        yield return new Vector2(cell.x, cell.y - 1);
-        yield return new Vector2(cell.x + 1, cell.y - 1);
+        return new Vector2[]
+        {
+            new Vector2(cell.x - 1, cell.y - 1),
+            new Vector2(cell.x, cell.y - 1),
+            new Vector2(cell.x + 1, cell.y - 1),
 
-        yield return new Vector2(cell.x - 1, cell.y);
-        //yield return new Vector2(cell.x, cell.y);
-        yield return new Vector2(cell.x + 1, cell.y);
+            new Vector2(cell.x - 1, cell.y),
+            new Vector2(cell.x + 1, cell.y),
 
-        yield return new Vector2(cell.x - 1, cell.y + 1);
-        yield return new Vector2(cell.x, cell.y + 1);
-        yield return new Vector2(cell.x + 1, cell.y + 1);
+            new Vector2(cell.x - 1, cell.y + 1),
+            new Vector2(cell.x, cell.y + 1),
+            new Vector2(cell.x + 1, cell.y + 1)
+        };
     }
 }

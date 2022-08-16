@@ -5,9 +5,9 @@ namespace GameOfLife
 {
     public class MainScene : Node2D
     {
-        private const int MinCellSize = 1;
+        private const int MinCellSize = 3;
 
-        private readonly Color CellColor = new Color(0, 250, 0);
+        private readonly Color CellColor = new Color(0, 1f, 0);
         private readonly Vector2 MousePositionOffset = new Vector2(-15, 0);
 
         private readonly Colony _colony = new Colony();
@@ -209,7 +209,13 @@ namespace GameOfLife
                 }
             }
 
-            _generationsLabel.Text = $"Generation: #{_colony.GenerationsCounter}      Colony size: {_colony.Count()}          Update Duration: {_colony.LastUpdateDurationMs}ms";
+            var mousePos = ((GetViewport().GetMousePosition() + MousePositionOffset + _cameraPosition) / _cellSize)
+                .Floor();
+
+            _generationsLabel.Text =
+                $"Generation: #{_colony.GenerationsCounter}      " +
+                $"Colony size: {_colony.Count()}      " +
+                $"X={mousePos.x} Y={mousePos.y}";
         }
 
         public override void _Draw()
@@ -219,21 +225,33 @@ namespace GameOfLife
             foreach (var cell in _colony)
             {
                 var cameraRect = new Rect2(
-                    x: _cameraPosition.x / _cellSize - 1,
-                    y: _cameraPosition.y / _cellSize - 1,
-                    width: viewPortSize.x / _cellSize + 1,
-                    height: viewPortSize.y / _cellSize + 1);
+                    _cameraPosition / _cellSize - Vector2.One * 2,
+                    viewPortSize / _cellSize + Vector2.One * 2);
 
                 if (cameraRect.HasPoint(cell))
                 {
-                    DrawRect(
-                        new Rect2(
-                            x: cell.x * _cellSize - _cameraPosition.x,
-                            y: cell.y * _cellSize - _cameraPosition.y,
-                            width: _cellSize,
-                            height: _cellSize),
-                        CellColor,
-                        filled: true);
+                    // if (_cellSize <= 5)
+                    // {
+                    //     var cellPos = cell * _cellSize - _cameraPosition;
+                    //     DrawRect(
+                    //         new Rect2(
+                    //             cellPos,
+                    //             width: _cellSize,
+                    //             height: _cellSize),
+                    //         CellColor,
+                    //         filled: true);
+                    // }
+                    // else
+                    {
+                        var cellPos = cell * _cellSize - _cameraPosition + Vector2.One;
+                        DrawRect(
+                            new Rect2(
+                                cellPos,
+                                width: _cellSize - 2,
+                                height: _cellSize - 2),
+                            CellColor,
+                            filled: true);
+                    }
                 }
             }
         }
